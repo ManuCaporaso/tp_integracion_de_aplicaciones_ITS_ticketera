@@ -94,7 +94,7 @@ export function PublicDisplay() {
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-slate-950 text-white">
-      <audio ref={audioRef} preload="auto" src="/sounds/tindeck_1.mp3" />
+      <audio ref={audioRef} preload="auto" src="/sounds/turnero.mp3
 
       <div
         aria-hidden="true"
