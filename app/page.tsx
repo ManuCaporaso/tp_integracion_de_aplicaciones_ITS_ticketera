@@ -47,11 +47,11 @@ export default function HomePage() {
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Radio className="h-4 w-4 text-sky-500" />
-                  Socket.IO + Netlify
+                  Socket.IO + Render
                 </span>
               </div>
             </div>
-
+git
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <RoleCard
                 href="/crear-ticket"

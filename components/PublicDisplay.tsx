@@ -32,12 +32,13 @@ export function PublicDisplay() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [pulseKey, setPulseKey] = useState(0);
-  const [recallPulse, setRecallPulse] = useState(0);
+  const [isFlashing, setIsFlashing] = useState(false);
+  const flashTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const unsubscribeCalled = on(SOCKET_EVENTS.TICKET_CALLED, () => {
       setPulseKey((key) => key + 1);
-      setRecallPulse(0);
+      setIsFlashing(false);
 
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
@@ -48,19 +49,29 @@ export function PublicDisplay() {
     });
 
     const unsubscribeRecalled = on(SOCKET_EVENTS.TICKET_RECALLED, () => {
-      setRecallPulse((pulse) => pulse + 1);
-
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
         audioRef.current
           .play()
           .catch((err) => console.log("Error al reproducir audio:", err));
       }
+
+      setIsFlashing(true);
+      if (flashTimeoutRef.current !== null) {
+        window.clearTimeout(flashTimeoutRef.current);
+      }
+      flashTimeoutRef.current = window.setTimeout(() => {
+        setIsFlashing(false);
+        flashTimeoutRef.current = null;
+      }, 2000);
     });
 
     return () => {
       unsubscribeCalled();
       unsubscribeRecalled();
+      if (flashTimeoutRef.current !== null) {
+        window.clearTimeout(flashTimeoutRef.current);
+      }
     };
   }, [on]);
 
@@ -206,26 +217,28 @@ export function PublicDisplay() {
           </p>
 
           {lastCalled ? (
-            <div
-              key={`${pulseKey}-${recallPulse}`}
-              className={cn(
-                "mt-4 w-full",
-                recallPulse > 0 ? "animate-ticket-recall" : "animate-ticket-pop",
-              )}
-            >
-              <p className="font-mono text-[clamp(6rem,26vw,18rem)] font-black leading-none tracking-tighter text-white drop-shadow-[0_0_40px_rgba(56,189,248,0.35)]">
-                {formatTicketNumber(lastCalled.number)}
-              </p>
-              <div className="mt-6 flex flex-col items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full bg-sky-500/20 px-5 py-2.5 text-2xl font-black text-sky-100 ring-1 ring-sky-400/40 sm:text-3xl">
-                  <Monitor className="h-6 w-6" />
-                  Escritorio {lastCalled.desktop ?? "—"}
-                </span>
-                {lastCalled.name ? (
-                  <p className="mt-2 text-xl font-semibold text-slate-200">
-                    {lastCalled.name}
-                  </p>
-                ) : null}
+            <div key={pulseKey} className="animate-ticket-pop mt-4 w-full">
+              <div
+                className={cn(
+                  "rounded-[2rem]",
+                  isFlashing &&
+                    "animate-bounce ring-4 ring-sky-500 ring-offset-4 ring-offset-slate-950",
+                )}
+              >
+                <p className="font-mono text-[clamp(6rem,26vw,18rem)] font-black leading-none tracking-tighter text-white drop-shadow-[0_0_40px_rgba(56,189,248,0.35)]">
+                  {formatTicketNumber(lastCalled.number)}
+                </p>
+                <div className="mt-6 flex flex-col items-center gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-sky-500/20 px-5 py-2.5 text-2xl font-black text-sky-100 ring-1 ring-sky-400/40 sm:text-3xl">
+                    <Monitor className="h-6 w-6" />
+                    Escritorio {lastCalled.desktop ?? "—"}
+                  </span>
+                  {lastCalled.name ? (
+                    <p className="mt-2 text-xl font-semibold text-slate-200">
+                      {lastCalled.name}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </div>
           ) : (
