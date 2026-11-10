@@ -128,7 +128,10 @@ export function DesktopControl({ desktop }: { desktop: number }) {
 
     setAction("recall");
     const result = await requestAck((ack) =>
-      socket.emit(SOCKET_EVENTS.RECALL_TICKET, { desktop }, ack),
+      socket.emit(SOCKET_EVENTS.RECALL_TICKET, {
+        desktop,
+        ticketId: activeTicket.id,
+      }, ack),
     );
     setAction(null);
 

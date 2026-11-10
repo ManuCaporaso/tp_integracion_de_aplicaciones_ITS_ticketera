@@ -55,6 +55,11 @@ export interface DesktopPayload {
   desktop: number;
 }
 
+export interface RecallTicketPayload {
+  desktop: number;
+  ticketId: string;
+}
+
 export type AckResult<T> =
   | { ok: true; ticket: T }
   | { ok: false; error: string };
@@ -83,7 +88,7 @@ export interface ClientToServerEvents {
     ack: (result: AckResult<WireTicket>) => void,
   ) => void;
   "rellamar-ticket": (
-    payload: DesktopPayload,
+    payload: RecallTicketPayload,
     ack: (result: AckResult<WireTicket>) => void,
   ) => void;
   "solicitar-estado": (ack: (snapshot: QueueSnapshot) => void) => void;

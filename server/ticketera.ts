@@ -152,6 +152,7 @@ export function attachTicketera(
 
     socket.on(SOCKET_EVENTS.RECALL_TICKET, (payload, ack) => {
       const desktop = Number(payload?.desktop);
+      const ticketId = typeof payload?.ticketId === "string" ? payload.ticketId : "";
 
       if (!isValidDesktop(desktop)) {
         ack({ ok: false, error: "Número de escritorio inválido." });
@@ -164,6 +165,16 @@ export function attachTicketera(
         ack({
           ok: false,
           error: "No hay ningún ticket en atención en este escritorio.",
+        });
+        return;
+      }
+
+      // El ticket debe coincidir con el que está en atención en ese escritorio,
+      // para nunca re-llamar el ticket de otro escritorio.
+      if (ticketId && active.id !== ticketId) {
+        ack({
+          ok: false,
+          error: "El ticket ya no está en atención en este escritorio.",
         });
         return;
       }

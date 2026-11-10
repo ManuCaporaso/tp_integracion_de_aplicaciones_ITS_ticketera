@@ -19,7 +19,9 @@ import { useSocket } from "@/context/SocketContext";
 import { cn } from "@/lib/cn";
 import {
   formatTicketNumber,
+  mapTicket,
   SOCKET_EVENTS,
+  type Ticket,
 } from "@/lib/types";
 
 export function PublicDisplay() {
@@ -33,12 +35,14 @@ export function PublicDisplay() {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [pulseKey, setPulseKey] = useState(0);
   const [isFlashing, setIsFlashing] = useState(false);
+  const [recalledTicket, setRecalledTicket] = useState<Ticket | null>(null);
   const flashTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const unsubscribeCalled = on(SOCKET_EVENTS.TICKET_CALLED, () => {
       setPulseKey((key) => key + 1);
       setIsFlashing(false);
+      setRecalledTicket(null);
 
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
@@ -48,7 +52,9 @@ export function PublicDisplay() {
       }
     });
 
-    const unsubscribeRecalled = on(SOCKET_EVENTS.TICKET_RECALLED, () => {
+    const unsubscribeRecalled = on(SOCKET_EVENTS.TICKET_RECALLED, (wireTicket) => {
+      setRecalledTicket(mapTicket(wireTicket));
+
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
         audioRef.current
@@ -62,6 +68,7 @@ export function PublicDisplay() {
       }
       flashTimeoutRef.current = window.setTimeout(() => {
         setIsFlashing(false);
+        setRecalledTicket(null);
         flashTimeoutRef.current = null;
       }, 2000);
     });
@@ -119,6 +126,7 @@ export function PublicDisplay() {
   const lastCalled = state?.lastCalled ?? null;
   const waiting = state?.waiting ?? [];
   const attended = state?.attended ?? [];
+  const displayedTicket = recalledTicket ?? lastCalled;
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-slate-950 text-white">
@@ -216,7 +224,7 @@ export function PublicDisplay() {
             Turno actual
           </p>
 
-          {lastCalled ? (
+          {displayedTicket ? (
             <div key={pulseKey} className="animate-ticket-pop mt-4 w-full">
               <div
                 className={cn(
@@ -226,16 +234,16 @@ export function PublicDisplay() {
                 )}
               >
                 <p className="font-mono text-[clamp(6rem,26vw,18rem)] font-black leading-none tracking-tighter text-white drop-shadow-[0_0_40px_rgba(56,189,248,0.35)]">
-                  {formatTicketNumber(lastCalled.number)}
+                  {formatTicketNumber(displayedTicket.number)}
                 </p>
                 <div className="mt-6 flex flex-col items-center gap-2">
                   <span className="inline-flex items-center gap-2 rounded-full bg-sky-500/20 px-5 py-2.5 text-2xl font-black text-sky-100 ring-1 ring-sky-400/40 sm:text-3xl">
                     <Monitor className="h-6 w-6" />
-                    Escritorio {lastCalled.desktop ?? "—"}
+                    Escritorio {displayedTicket.desktop ?? "—"}
                   </span>
-                  {lastCalled.name ? (
+                  {displayedTicket.name ? (
                     <p className="mt-2 text-xl font-semibold text-slate-200">
-                      {lastCalled.name}
+                      {displayedTicket.name}
                     </p>
                   ) : null}
                 </div>
