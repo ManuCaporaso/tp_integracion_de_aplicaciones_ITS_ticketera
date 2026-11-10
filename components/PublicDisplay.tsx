@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
   CheckCircle,
-  Megaphone,
   Monitor,
   Ticket as TicketIcon,
   Volume2,
@@ -20,7 +19,6 @@ import { useSocket } from "@/context/SocketContext";
 import { cn } from "@/lib/cn";
 import {
   formatTicketNumber,
-  mapTicket,
   SOCKET_EVENTS,
 } from "@/lib/types";
 
@@ -31,60 +29,63 @@ export function PublicDisplay() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const soundEnabledRef = useRef(false);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [pulseKey, setPulseKey] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = on(SOCKET_EVENTS.TICKET_CALLED, (wireTicket) => {
-      const ticket = mapTicket(wireTicket);
-      const desktop = ticket.desktop ?? "—";
-
+    const unsubscribe = on(SOCKET_EVENTS.TICKET_CALLED, () => {
       setPulseKey((key) => key + 1);
 
-      toast.info(
-        `Ticket #${formatTicketNumber(ticket.number)}, favor de pasar al Escritorio ${desktop}`,
-        {
-          icon: <Megaphone className="h-5 w-5" />,
-          duration: 12_000,
-        },
-      );
-
-      if (soundEnabledRef.current) {
-        const audio = audioRef.current;
-        if (audio) {
-          audio.currentTime = 0;
-          void audio.play().catch(() => undefined);
-        }
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current
+          .play()
+          .catch((err) => console.log("Error al reproducir audio:", err));
       }
     });
 
     return unsubscribe;
   }, [on]);
 
-  async function toggleSound() {
-    if (soundEnabledRef.current) {
-      soundEnabledRef.current = false;
-      setSoundEnabled(false);
-      return;
-    }
-
+  async function enableAudio() {
     const audio = audioRef.current;
     if (!audio) {
       return;
     }
 
     try {
-      audio.volume = 0.6;
+      // Reproducción muda para desbloquear la política de Autoplay del navegador.
+      audio.muted = true;
       await audio.play();
       audio.pause();
       audio.currentTime = 0;
+      audio.muted = false;
+      audio.volume = 0.6;
+
       soundEnabledRef.current = true;
       setSoundEnabled(true);
-      toast.success("Sonido de llamados activado");
+      setIsAudioEnabled(true);
     } catch {
       toast.error(
-        "El navegador bloqueó el audio. Hacé clic de nuevo una vez dentro de la página.",
+        "El navegador bloqueó el audio. Intentá tocar el botón nuevamente.",
       );
+    }
+  }
+
+  function toggleSound() {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+
+    const nextEnabled = !soundEnabledRef.current;
+    soundEnabledRef.current = nextEnabled;
+    setSoundEnabled(nextEnabled);
+    audio.muted = !nextEnabled;
+
+    if (nextEnabled) {
+      toast.success("Sonido de llamados activado");
     }
   }
 
@@ -94,7 +95,33 @@ export function PublicDisplay() {
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-slate-950 text-white">
-      <audio ref={audioRef} preload="auto" src="/sounds/turnero.mp3/" />
+      <audio ref={audioRef} preload="auto" src="/sounds/turnero.mp3" />
+
+      {!isAudioEnabled && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 px-6 backdrop-blur">
+          <div className="flex max-w-md flex-col items-center gap-6 text-center">
+            <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/10 text-white ring-1 ring-white/20">
+              <Volume2 className="h-8 w-8" />
+            </span>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-black tracking-tight text-white">
+                Pantalla Pública
+              </h1>
+              <p className="text-sm text-slate-300">
+                Tocá el botón para habilitar el sonido y desbloquear la
+                reproducción automática de los llamados.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={enableAudio}
+              className="rounded-2xl bg-sky-500 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-sky-500/30 transition-transform hover:scale-105 active:scale-95"
+            >
+              Tocar para activar Pantalla Pública con Sonido
+            </button>
+          </div>
+        </div>
+      )}
 
       <div
         aria-hidden="true"
