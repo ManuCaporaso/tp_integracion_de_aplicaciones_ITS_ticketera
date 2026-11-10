@@ -52,6 +52,29 @@ body {
   animation: ticket-pop 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+@keyframes ticket-recall {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  15% {
+    transform: translateY(-14px) scale(1.02);
+  }
+  30% {
+    transform: translateY(0) scale(1);
+  }
+  45% {
+    transform: translateY(-7px);
+  }
+  60% {
+    transform: translateY(0);
+  }
+}
+
+.animate-ticket-recall {
+  animation: ticket-recall 0.9s ease-in-out both;
+}
+
 .animate-soft-glow {
   animation: soft-glow 3.5s ease-in-out infinite;
 }

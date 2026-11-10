@@ -150,6 +150,30 @@ export function attachTicketera(
       console.log(`Ticket #${active.number} atendido en escritorio ${desktop}`);
     });
 
+    socket.on(SOCKET_EVENTS.RECALL_TICKET, (payload, ack) => {
+      const desktop = Number(payload?.desktop);
+
+      if (!isValidDesktop(desktop)) {
+        ack({ ok: false, error: "Número de escritorio inválido." });
+        return;
+      }
+
+      const active = byDesktop.get(desktop);
+
+      if (!active) {
+        ack({
+          ok: false,
+          error: "No hay ningún ticket en atención en este escritorio.",
+        });
+        return;
+      }
+
+      io.emit(SOCKET_EVENTS.TICKET_RECALLED, active);
+      ack({ ok: true, ticket: active });
+
+      console.log(`Ticket #${active.number} re-llamado al escritorio ${desktop}`);
+    });
+
     socket.on(SOCKET_EVENTS.REQUEST_STATE, (ack) => {
       ack(snapshot());
     });

@@ -32,10 +32,12 @@ export function PublicDisplay() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [pulseKey, setPulseKey] = useState(0);
+  const [recallPulse, setRecallPulse] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = on(SOCKET_EVENTS.TICKET_CALLED, () => {
+    const unsubscribeCalled = on(SOCKET_EVENTS.TICKET_CALLED, () => {
       setPulseKey((key) => key + 1);
+      setRecallPulse(0);
 
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
@@ -45,7 +47,21 @@ export function PublicDisplay() {
       }
     });
 
-    return unsubscribe;
+    const unsubscribeRecalled = on(SOCKET_EVENTS.TICKET_RECALLED, () => {
+      setRecallPulse((pulse) => pulse + 1);
+
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current
+          .play()
+          .catch((err) => console.log("Error al reproducir audio:", err));
+      }
+    });
+
+    return () => {
+      unsubscribeCalled();
+      unsubscribeRecalled();
+    };
   }, [on]);
 
   async function enableAudio() {
@@ -190,7 +206,13 @@ export function PublicDisplay() {
           </p>
 
           {lastCalled ? (
-            <div key={pulseKey} className="animate-ticket-pop mt-4 w-full">
+            <div
+              key={`${pulseKey}-${recallPulse}`}
+              className={cn(
+                "mt-4 w-full",
+                recallPulse > 0 ? "animate-ticket-recall" : "animate-ticket-pop",
+              )}
+            >
               <p className="font-mono text-[clamp(6rem,26vw,18rem)] font-black leading-none tracking-tighter text-white drop-shadow-[0_0_40px_rgba(56,189,248,0.35)]">
                 {formatTicketNumber(lastCalled.number)}
               </p>

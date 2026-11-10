@@ -9,6 +9,7 @@ import {
   Inbox,
   Loader2,
   Monitor,
+  RotateCcw,
   Ticket as TicketIcon,
   Users,
 } from "lucide-react";
@@ -27,7 +28,7 @@ import {
   type Ticket,
 } from "@/lib/types";
 
-type Action = "call" | "attend" | null;
+type Action = "call" | "attend" | "recall" | null;
 
 function WaitingRow({ ticket }: { ticket: Ticket }) {
   const elapsed = useElapsedMinutes(ticket.createdAt);
@@ -112,6 +113,33 @@ export function DesktopControl({ desktop }: { desktop: number }) {
         description: `Escritorio ${desktop}`,
         icon: <CheckCircle className="h-5 w-5" />,
       },
+    );
+  }
+
+  async function recallTicket() {
+    if (!socket?.connected) {
+      toast.error("Conexión perdida con el servidor WebSocket");
+      return;
+    }
+
+    if (!activeTicket) {
+      return;
+    }
+
+    setAction("recall");
+    const result = await requestAck((ack) =>
+      socket.emit(SOCKET_EVENTS.RECALL_TICKET, { desktop }, ack),
+    );
+    setAction(null);
+
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.info(
+      `Llamando nuevamente al Ticket #${formatTicketNumber(result.ticket.number)}...`,
+      { icon: <RotateCcw className="h-5 w-5" /> },
     );
   }
 
@@ -225,6 +253,22 @@ export function DesktopControl({ desktop }: { desktop: number }) {
               )}
               Marcar atendido
             </button>
+
+            {activeTicket && (
+              <button
+                type="button"
+                onClick={recallTicket}
+                disabled={isBusy || !isOnline}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-4 text-sm font-black text-slate-700 shadow-sm transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:col-span-2"
+              >
+                {action === "recall" ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-5 w-5" />
+                )}
+                Re-llamar Ticket
+              </button>
+            )}
           </div>
 
           <p className="mt-3 text-center text-xs text-slate-400 sm:text-left">

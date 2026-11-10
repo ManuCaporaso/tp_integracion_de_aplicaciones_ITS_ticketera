@@ -63,6 +63,7 @@ export type AckResult<T> =
 export interface ServerToClientEvents {
   "estado-actual": (snapshot: QueueSnapshot) => void;
   "ticket-llamado": (ticket: WireTicket) => void;
+  "ticket-rellamado": (ticket: WireTicket) => void;
   "ticket-creado": (ticket: WireTicket) => void;
   "socket-error": (message: string) => void;
 }
@@ -81,6 +82,10 @@ export interface ClientToServerEvents {
     payload: DesktopPayload,
     ack: (result: AckResult<WireTicket>) => void,
   ) => void;
+  "rellamar-ticket": (
+    payload: DesktopPayload,
+    ack: (result: AckResult<WireTicket>) => void,
+  ) => void;
   "solicitar-estado": (ack: (snapshot: QueueSnapshot) => void) => void;
 }
 
@@ -88,9 +93,11 @@ export const SOCKET_EVENTS = {
   CREATE_TICKET: "crear-ticket",
   CALL_NEXT: "llamar-siguiente",
   TICKET_ATTENDED: "ticket-atendido",
+  RECALL_TICKET: "rellamar-ticket",
   REQUEST_STATE: "solicitar-estado",
   STATE: "estado-actual",
   TICKET_CALLED: "ticket-llamado",
+  TICKET_RECALLED: "ticket-rellamado",
   TICKET_CREATED: "ticket-creado",
   SOCKET_ERROR: "socket-error",
 } as const;
